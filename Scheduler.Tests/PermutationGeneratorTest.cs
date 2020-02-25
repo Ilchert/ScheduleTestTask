@@ -17,7 +17,7 @@ namespace Scheduler.Tests
         }
 
         [Fact]
-        public void Generate()
+        public void Generate_NoDependencies()
         {
             var reader = new DependenciesReader();
             var data = new[]
@@ -39,6 +39,32 @@ namespace Scheduler.Tests
             }
 
             Assert.Equal(24, permutations.Count());
+        }
+
+        [Fact]
+        public void Generate_BasicDependencies()
+        {
+            var reader = new DependenciesReader();
+            var data = new[]
+            {
+                "1 ()",
+                "2 (1)",
+                "3 (2)",
+                "4 (1)"
+            };
+
+            var graph = reader.Read(data);
+
+            var permutationGenerator = new PermutationGenerator(graph);
+            var permutations = permutationGenerator.Generate();
+
+            foreach (var permutation in permutations)
+            {
+                _testOutput.WriteLine(string.Join(" ", permutation.Select(p => p.Id)));
+            }
+
+            Assert.Equal(3, permutations.Count());
+            
         }
     }
 }

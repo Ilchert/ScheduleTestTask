@@ -44,7 +44,7 @@ namespace Scheduler
             }
 
             var rootNodes = nodeIndex.Values.Where(p => p.Parents.Count == 0).ToList();
-            return new Graph(rootNodes, nodeIndex);
+            return new Graph(rootNodes, nodeIndex); //cycle guard.
         }
     }
 }

@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Text;
 
 namespace Scheduler
 {
+    [DebuggerDisplay("{Id}")]
     public class Node
     {
         public int Id { get; }
