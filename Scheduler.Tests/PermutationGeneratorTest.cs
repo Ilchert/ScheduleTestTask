@@ -40,6 +40,5 @@ namespace Scheduler.Tests
 
             Assert.Equal(24, permutations.Count());
         }
-
     }
 }
