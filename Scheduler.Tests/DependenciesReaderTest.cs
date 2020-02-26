@@ -36,7 +36,7 @@ namespace Scheduler.Tests
             Assert.Empty(orderedDependencies[1].Parents);
             Assert.Collection(orderedDependencies[1].Children, p => Assert.Equal(4, p.Id));
 
-            var fourNode = orderedDependencies[1].Children[0];
+            var fourNode = orderedDependencies[1].Children.First();
             Assert.Empty(fourNode.Children);
             Assert.Collection(fourNode.Parents.OrderBy(p => p.Id),
                 p => Assert.Equal(2, p.Id),

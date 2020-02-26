@@ -10,7 +10,7 @@ namespace Scheduler
     {
         public int Id { get; }
 
-        public List<Node> Children { get; }
+        public HashSet<Node> Children { get; }
 
         public List<Node> Parents { get; } //TODO: remove?
 
@@ -18,16 +18,30 @@ namespace Scheduler
 
         public TimeSpan Duration { get; }
 
-        public Node(int id) : this(id, new List<Node>(), new List<Node>())
+        public Node(int id)
         {
-
+            Children = new HashSet<Node>(new NodeEqualityComparer());
+            Parents = new List<Node>();
+            Id = id;
         }
 
-        public Node(int id, List<Node> children, List<Node> parents)
+        private class NodeEqualityComparer : IEqualityComparer<Node>
         {
-            Children = children;
-            Parents = parents;
-            Id = id;
+            public bool Equals(Node x, Node y)
+            {
+                if (x == y)
+                    return true;
+
+                if (x == null || y == null)
+                    return false;
+
+                return x.Id == y.Id;
+            }
+
+            public int GetHashCode(Node obj)
+            {
+                return obj.Id;
+            }
         }
     }
 }
