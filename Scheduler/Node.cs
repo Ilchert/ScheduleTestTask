@@ -12,7 +12,7 @@ namespace Scheduler
 
         public List<Node> Children { get; }
 
-        public List<Node> Parents { get; }
+        public List<Node> Parents { get; } //TODO: remove?
 
         public DateTimeOffset StartTime { get; }
 

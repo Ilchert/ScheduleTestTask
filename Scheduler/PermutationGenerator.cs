@@ -69,37 +69,78 @@ namespace Scheduler
 
 
 
-        public IEnumerable<IReadOnlyList<Node>> Generate()
+        public IEnumerable<IReadOnlyList<Node>> Generate() => new PermutationGeneratorVisitor(_permutationGraph).Generate();
+
+        private class PermutationGeneratorVisitor : InDeepVisitor
         {
-            var result = new List<IReadOnlyList<Node>>();
-            _visitedNodes.Clear();
-            _currentPath.Clear();
-            Visit(_permutationGraph.RootNodes, () => result.Add(_currentPath.Reverse().ToArray()));
-            return result;
+            private readonly List<IReadOnlyList<Node>> _permutations = new List<IReadOnlyList<Node>>();
+
+            public PermutationGeneratorVisitor(Graph graph) : base(graph)
+            {
+            }
+
+            public IReadOnlyList<IReadOnlyList<Node>> Generate()
+            {
+                Visit();
+                return _permutations.AsReadOnly();
+            }
+
+            protected override void PathConstructed()
+            {
+                _permutations.Add(GetCurrentPath());
+            }
         }
 
 
-        private void Visit(List<Node> nodes, Action pathConstructed)
+        private abstract class InDeepVisitor
         {
-            foreach (var node in nodes)
+            private readonly Graph _graph;
+            private readonly Stack<Node> _currentPath = new Stack<Node>();
+            private readonly HashSet<int> _visitedNodes = new HashSet<int>();
+
+            protected InDeepVisitor(Graph graph) => _graph = graph;
+
+            protected void Visit()
             {
-                if (_visitedNodes.Contains(node.Id))
-                    continue;
+                Visit(_graph.RootNodes);
+            }
 
-                _visitedNodes.Add(node.Id);
-                _currentPath.Push(node);
-
-                if (_currentPath.Count == _permutationGraph.AllNodes.Count)
+            private void Visit(List<Node> nodes)
+            {
+                foreach (var node in nodes)
                 {
-                    pathConstructed();
-                }
-                else
-                {
-                    Visit(node.Children, pathConstructed);
-                }
+                    if (_visitedNodes.Contains(node.Id))
+                        continue;
 
-                _visitedNodes.Remove(node.Id);
-                _currentPath.Pop();
+                    _visitedNodes.Add(node.Id);
+                    _currentPath.Push(node);
+                    ProcessNode(node);
+
+                    if (_currentPath.Count == _graph.NodesCount)
+                    {
+                        PathConstructed();
+                    }
+                    else
+                    {
+                        Visit(node.Children);
+                    }
+
+                    _visitedNodes.Remove(node.Id);
+                    _currentPath.Pop();
+                }
+            }
+
+            protected IReadOnlyList<Node> GetCurrentPath() => _currentPath.Reverse().ToArray();
+
+            protected virtual void PathConstructed()
+            {
+
+            }
+
+
+            protected virtual void ProcessNode(Node node)
+            {
+
             }
         }
     }
