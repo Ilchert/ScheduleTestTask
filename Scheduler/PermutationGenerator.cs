@@ -7,18 +7,14 @@ namespace Scheduler
 {
     public class PermutationGenerator
     {
-        private readonly Graph _dependenciesGraph;
-
         private readonly Graph _permutationGraph;
         private readonly Stack<Node> _currentPath = new Stack<Node>();
         private readonly HashSet<int> _visitedNodes = new HashSet<int>();
 
         public PermutationGenerator(Graph dependenciesGraph)
         {
-            _dependenciesGraph = dependenciesGraph;
             _permutationGraph = GeneratePermutationGraph(dependenciesGraph);
-
-            OptimizePermutations(_dependenciesGraph.RootNodes);
+            new PermutationOptimizerVisitor(_permutationGraph, dependenciesGraph).Visit();
         }
 
         private Graph GeneratePermutationGraph(Graph dependenciesGraph)
@@ -41,35 +37,35 @@ namespace Scheduler
             return new Graph(rootNodes, newNodes);
         }
 
+        public IEnumerable<IReadOnlyList<Node>> Generate() => new PermutationGeneratorVisitor(_permutationGraph).Generate();
 
-
-        private void OptimizePermutations(List<Node> rootNodes)
+        private class PermutationOptimizerVisitor : InDeepVisitor
         {
-            foreach (var node in rootNodes)
+            private readonly Graph _permutationGraph;
+
+            public PermutationOptimizerVisitor(Graph permutationGraph, Graph dependenciesGraph) : base(dependenciesGraph)
+            {
+                _permutationGraph = permutationGraph;
+            }
+
+            protected override void ProcessNode(Node node)
             {
                 var permutationNode = _permutationGraph.AllNodes[node.Id];
-                permutationNode.Children.RemoveAll(p => _visitedNodes.Contains(p.Id));
+                permutationNode.Children.RemoveAll(p => VisitedNodes.Contains(p.Id));
 
-                if (_currentPath.Count > 1)
+                var hashSet = new HashSet<Node>();
+
+                if (CurrentPath.Count > 2)
                 {
-                    foreach (var transitiveParentNode in _currentPath.Skip(1))
+                    foreach (var transitiveParentNode in CurrentPath.Skip(2))
                     {
                         var permutationTransitiveParentNode = _permutationGraph.AllNodes[transitiveParentNode.Id];
                         permutationTransitiveParentNode.Children.RemoveAll(p => p.Id == node.Id);
                     }
                 }
-
-                _visitedNodes.Add(node.Id);
-                _currentPath.Push(node);
-                OptimizePermutations(node.Children);
-                _visitedNodes.Remove(node.Id);
-                _currentPath.Pop();
             }
+
         }
-
-
-
-        public IEnumerable<IReadOnlyList<Node>> Generate() => new PermutationGeneratorVisitor(_permutationGraph).Generate();
 
         private class PermutationGeneratorVisitor : InDeepVisitor
         {
@@ -87,20 +83,22 @@ namespace Scheduler
 
             protected override void PathConstructed()
             {
-                _permutations.Add(GetCurrentPath());
+                _permutations.Add(CurrentPath.Reverse().ToArray());
             }
         }
 
 
         private abstract class InDeepVisitor
         {
+            protected Stack<Node> CurrentPath { get; } = new Stack<Node>();
+
+            protected HashSet<int> VisitedNodes { get; } = new HashSet<int>();
+
             private readonly Graph _graph;
-            private readonly Stack<Node> _currentPath = new Stack<Node>();
-            private readonly HashSet<int> _visitedNodes = new HashSet<int>();
 
             protected InDeepVisitor(Graph graph) => _graph = graph;
 
-            protected void Visit()
+            public void Visit()
             {
                 Visit(_graph.RootNodes);
             }
@@ -109,14 +107,14 @@ namespace Scheduler
             {
                 foreach (var node in nodes)
                 {
-                    if (_visitedNodes.Contains(node.Id))
+                    if (VisitedNodes.Contains(node.Id))
                         continue;
 
-                    _visitedNodes.Add(node.Id);
-                    _currentPath.Push(node);
+                    VisitedNodes.Add(node.Id);
+                    CurrentPath.Push(node);
                     ProcessNode(node);
 
-                    if (_currentPath.Count == _graph.NodesCount)
+                    if (CurrentPath.Count == _graph.NodesCount)
                     {
                         PathConstructed();
                     }
@@ -125,16 +123,13 @@ namespace Scheduler
                         Visit(node.Children);
                     }
 
-                    _visitedNodes.Remove(node.Id);
-                    _currentPath.Pop();
+                    VisitedNodes.Remove(node.Id);
+                    CurrentPath.Pop();
                 }
             }
 
-            protected IReadOnlyList<Node> GetCurrentPath() => _currentPath.Reverse().ToArray();
-
             protected virtual void PathConstructed()
             {
-
             }
 
 
