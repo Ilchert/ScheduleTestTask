@@ -8,11 +8,11 @@ using Xunit.Abstractions;
 
 namespace Scheduler.Tests
 {
-    public class PermutationGeneratorTest
+    public class ScheduleGeneratorTest
     {
         private readonly ITestOutputHelper _testOutput;
 
-        public PermutationGeneratorTest(ITestOutputHelper testOutput)
+        public ScheduleGeneratorTest(ITestOutputHelper testOutput)
         {
             _testOutput = testOutput;
         }
@@ -63,7 +63,7 @@ namespace Scheduler.Tests
 1 2 4 3
 1 2 3 4
 " };
-            
+
             yield return new object[] { @"
 1 ()
 2 (1)
@@ -191,23 +191,62 @@ namespace Scheduler.Tests
             var reader = new DependenciesReader();
             var graph = reader.Read(graphData.Split(Separator, StringSplitOptions.RemoveEmptyEntries));
 
-            var permutationGenerator = new PermutationGenerator(graph);
-            var actual = permutationGenerator.Generate().ToArray();
+            var scheduleGenerator = new ScheduleGenerator(graph);
+            var actual = scheduleGenerator.Generate().ToArray();
 
             var expected = expectedData.Split(Separator, StringSplitOptions.RemoveEmptyEntries).OrderBy(p => p).ToArray();
 
             var formattedActual = new List<string>();
-            foreach (var permutation in actual)
+            foreach (var schedule in actual)
             {
-                var permutationString = string.Join(" ", permutation.Select(p => p.Id.ToString(CultureInfo.InvariantCulture)));
-                _testOutput.WriteLine(permutationString);
-                formattedActual.Add(permutationString);
+                var formattedString = string.Join(" ", schedule.Select(p => p.Id.ToString(CultureInfo.InvariantCulture)));
+                _testOutput.WriteLine(formattedString);
+                formattedActual.Add(formattedString);
             }
 
             formattedActual.Sort();
 
             Assert.Equal(expected, formattedActual);
             Assert.Equal(expected.Length, actual.Length);
+        }
+
+        public static IEnumerable<object[]> GetOptimalScheduleData()
+        {
+            yield return new object[] { @"
+1 ()
+2 (1)
+3 (2)
+4 (1)
+",
+                @"
+1 2020-06-22T12:00:00 01:00:00
+2 2020-06-23T12:00:00 00:30:00
+3 2020-06-22T12:00:00 00:10:00
+4 2020-06-23T10:00:00 00:05:00
+",
+
+                @"1 4 2 3" };
+
+        }
+
+        [Theory]
+        [MemberData(nameof(GetOptimalScheduleData))]
+        public void GetOptimalSchedule(string graphData, string timeInformation, string expected)
+        {
+            var reader = new DependenciesReader();
+            var graph = reader.Read(graphData.Split(Separator, StringSplitOptions.RemoveEmptyEntries));
+            var additionalInformationReader = new AdditionalInformationReader();
+            additionalInformationReader.FillData(timeInformation.Split(Separator, StringSplitOptions.RemoveEmptyEntries), graph);
+
+            var scheduleGenerator = new ScheduleGenerator(graph);
+
+
+            var actual = scheduleGenerator.GetOptimalSchedule().ToArray();
+
+            var formattedActual = string.Join(" ", actual.Select(p => p.Id.ToString(CultureInfo.InvariantCulture)));
+            _testOutput.WriteLine(formattedActual);
+
+            Assert.Equal(expected, formattedActual);
         }
     }
 }

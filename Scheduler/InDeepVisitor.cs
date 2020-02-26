@@ -26,17 +26,18 @@ namespace Scheduler
 
                 VisitedNodes.Add(node.Id);
                 CurrentPath.Push(node);
-                ProcessNode(node);
+                BeforeVisit(node);
 
                 if (CurrentPath.Count == _graph.NodesCount)
                 {
                     PathConstructed();
                 }
-                else
+                else if (VisitChildren())
                 {
                     Visit(node.Children);
                 }
 
+                AfterVisit(node);
                 VisitedNodes.Remove(node.Id);
                 CurrentPath.Pop();
             }
@@ -47,9 +48,20 @@ namespace Scheduler
         }
 
 
-        protected virtual void ProcessNode(Node node)
+        protected virtual void BeforeVisit(Node node)
         {
 
+        }
+
+        protected virtual void AfterVisit(Node node)
+        {
+
+        }
+
+
+        protected virtual bool VisitChildren()
+        {
+            return true;
         }
     }
 }

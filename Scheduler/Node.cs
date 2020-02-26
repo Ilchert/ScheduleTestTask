@@ -14,9 +14,9 @@ namespace Scheduler
 
         public List<Node> Parents { get; } //TODO: remove?
 
-        public DateTimeOffset StartTime { get; }
+        public DateTimeOffset StartTime { get; set; }
 
-        public TimeSpan Duration { get; }
+        public TimeSpan Duration { get; set; }
 
         public Node(int id)
         {
