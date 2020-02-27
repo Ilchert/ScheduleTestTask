@@ -17,9 +17,7 @@ namespace Scheduler
             new ScheduleOptimizerVisitor(_permutationGraph, dependenciesGraph).Visit();
         }
 
-        /// <summary>
-        /// Generate all possible combinations.
-        /// </summary>
+
         private Graph GeneratePermutationGraph(Graph dependenciesGraph)
         {
             var newNodes = dependenciesGraph.AllNodes.Values.Select(p => new Node(p.Id)
@@ -46,15 +44,23 @@ namespace Scheduler
             return new Graph(rootNodes, newNodes);
         }
 
+        /// <summary>
+        /// Generate all valid schedules.
+        /// </summary>
         public IEnumerable<IReadOnlyList<Node>> Generate() => new ScheduleListGeneratorVisitor(_permutationGraph, _dependenciesGraph).Generate();
 
-
+        /// <summary>
+        /// Returns first earliest schedule.
+        /// </summary>
+        /// <returns></returns>
         public IReadOnlyList<Node> GetOptimalSchedule()
         {
             return new OptimalScheduleVisitor(_permutationGraph, _dependenciesGraph).GetOptimalSchedule();
         }
 
-
+        /// <summary>
+        /// Find first earliest schedule. 
+        /// </summary>
         private class OptimalScheduleVisitor : ScheduleGeneratorVisitor
         {
             private DateTimeOffset _earliestEndTime = DateTimeOffset.MaxValue;
@@ -138,10 +144,12 @@ namespace Scheduler
 
         }
 
+        /// <summary>
+        /// Find all valid paths in permutation graph according to dependencies graph.
+        /// </summary>
         private abstract class ScheduleGeneratorVisitor : InDeepVisitor
         {
             private readonly Graph _dependenciesGraph;
-            private readonly List<IReadOnlyList<Node>> _permutations = new List<IReadOnlyList<Node>>();
 
             protected ScheduleGeneratorVisitor(Graph graph, Graph dependenciesGraph) : base(graph)
             {
@@ -163,7 +171,6 @@ namespace Scheduler
                 return false;
             }
         }
-
 
         private class ScheduleListGeneratorVisitor : ScheduleGeneratorVisitor
         {
