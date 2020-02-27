@@ -6,7 +6,7 @@ namespace Scheduler
     {
         protected Stack<Node> CurrentPath { get; } = new Stack<Node>();
 
-        private HashSet<int> VisitedNodes { get; } = new HashSet<int>();
+        protected HashSet<int> VisitedNodes { get; } = new HashSet<int>();
 
         private readonly Graph _graph;
 
@@ -21,7 +21,7 @@ namespace Scheduler
         {
             foreach (var node in nodes)
             {
-                if (VisitedNodes.Contains(node.Id))
+                if (Skip(node))
                     continue;
 
                 VisitedNodes.Add(node.Id);
@@ -41,6 +41,11 @@ namespace Scheduler
                 VisitedNodes.Remove(node.Id);
                 CurrentPath.Pop();
             }
+        }
+
+        protected virtual bool Skip(Node node)
+        {
+            return VisitedNodes.Contains(node.Id);
         }
 
         protected virtual void PathConstructed()

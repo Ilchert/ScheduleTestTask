@@ -7,14 +7,19 @@ namespace Scheduler
 {
     public class ScheduleGenerator
     {
+        private readonly Graph _dependenciesGraph;
         private readonly Graph _permutationGraph;
 
         public ScheduleGenerator(Graph dependenciesGraph)
         {
+            _dependenciesGraph = dependenciesGraph;
             _permutationGraph = GeneratePermutationGraph(dependenciesGraph);
             new ScheduleOptimizerVisitor(_permutationGraph, dependenciesGraph).Visit();
         }
 
+        /// <summary>
+        /// Generate all possible combinations.
+        /// </summary>
         private Graph GeneratePermutationGraph(Graph dependenciesGraph)
         {
             var newNodes = dependenciesGraph.AllNodes.Values.Select(p => new Node(p.Id)
@@ -27,6 +32,7 @@ namespace Scheduler
             {
                 foreach (var toNode in newNodes.Values)
                 {
+                    //exclude self
                     if (fromNode.Id == toNode.Id)
                         continue;
 
@@ -34,27 +40,29 @@ namespace Scheduler
                 }
             }
 
+            //detect root nodes
             var rootNodes = dependenciesGraph.RootNodes.Select(p => newNodes[p.Id]).ToList();
 
             return new Graph(rootNodes, newNodes);
         }
 
-        public IEnumerable<IReadOnlyList<Node>> Generate() => new ScheduleGeneratorVisitor(_permutationGraph).Generate();
+        public IEnumerable<IReadOnlyList<Node>> Generate() => new ScheduleListGeneratorVisitor(_permutationGraph, _dependenciesGraph).Generate();
 
 
         public IReadOnlyList<Node> GetOptimalSchedule()
         {
-            return new OptimalScheduleVisitor(_permutationGraph).GetOptimalSchedule();
+            return new OptimalScheduleVisitor(_permutationGraph, _dependenciesGraph).GetOptimalSchedule();
         }
 
-        private class OptimalScheduleVisitor : InDeepVisitor
+
+        private class OptimalScheduleVisitor : ScheduleGeneratorVisitor
         {
             private DateTimeOffset _earliestEndTime = DateTimeOffset.MaxValue;
             private IReadOnlyList<Node>? _selectedPath;
 
             private readonly Stack<DateTimeOffset> _currentEndTime = new Stack<DateTimeOffset>();
 
-            public OptimalScheduleVisitor(Graph graph) : base(graph)
+            public OptimalScheduleVisitor(Graph graph, Graph dependenciesGraph) : base(graph, dependenciesGraph)
             {
                 _currentEndTime.Push(DateTimeOffset.MinValue);
             }
@@ -101,6 +109,9 @@ namespace Scheduler
             }
         }
 
+        /// <summary>
+        /// Remove invalid transitions from permutation graph.
+        /// </summary>
         private class ScheduleOptimizerVisitor : InDeepVisitor
         {
             private readonly Graph _permutationGraph;
@@ -127,11 +138,38 @@ namespace Scheduler
 
         }
 
-        private class ScheduleGeneratorVisitor : InDeepVisitor
+        private abstract class ScheduleGeneratorVisitor : InDeepVisitor
+        {
+            private readonly Graph _dependenciesGraph;
+            private readonly List<IReadOnlyList<Node>> _permutations = new List<IReadOnlyList<Node>>();
+
+            protected ScheduleGeneratorVisitor(Graph graph, Graph dependenciesGraph) : base(graph)
+            {
+                _dependenciesGraph = dependenciesGraph;
+            }
+
+            protected override bool Skip(Node node)
+            {
+                if (base.Skip(node))
+                    return true;
+
+                var dependencyNode = _dependenciesGraph.AllNodes[node.Id];
+
+                foreach (var parent in dependencyNode.Parents)
+                {
+                    if (!VisitedNodes.Contains(parent.Id))
+                        return true;
+                }
+                return false;
+            }
+        }
+
+
+        private class ScheduleListGeneratorVisitor : ScheduleGeneratorVisitor
         {
             private readonly List<IReadOnlyList<Node>> _permutations = new List<IReadOnlyList<Node>>();
 
-            public ScheduleGeneratorVisitor(Graph graph) : base(graph)
+            public ScheduleListGeneratorVisitor(Graph graph, Graph dependenciesGraph) : base(graph, dependenciesGraph)
             {
             }
 
@@ -146,5 +184,6 @@ namespace Scheduler
                 _permutations.Add(CurrentPath.Reverse().ToArray());
             }
         }
+
     }
 }

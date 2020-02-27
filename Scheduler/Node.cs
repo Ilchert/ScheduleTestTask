@@ -12,7 +12,7 @@ namespace Scheduler
 
         public HashSet<Node> Children { get; }
 
-        public List<Node> Parents { get; } //TODO: remove?
+        public List<Node> Parents { get; }
 
         public DateTimeOffset StartTime { get; set; }
 
